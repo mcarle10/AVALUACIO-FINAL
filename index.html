@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENS AVALUEM - PCMAT | Qüestionari d'Autoavaluació</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Oswald (for condensed header look) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel (.xlsx) Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    },
+                    colors: {
+                        pcmat: {
+                            dark: '#1b5e20',
+                            forest: '#236627',
+                            mid: '#357a38',
+                            light: '#66bb6a',
+                            soft: '#e8f5e9',
+                            mint: '#f1f8f2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Checkbox Styling */
+        .custom-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #64748b;
+            border-radius: 0.375rem;
+            background-color: #ffffff;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease-in-out;
+        }
+        .custom-checkbox:hover {
+            border-color: #2e7d32;
+            background-color: #f1f8f2;
+        }
+        .custom-checkbox:checked {
+            background-color: #2e7d32;
+            border-color: #1b5e20;
+            background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .custom-checkbox:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.25);
+        }
+
+        /* Brush stroke effect on the right end of ENS AVALUEM banner */
+        .brush-banner {
+            position: relative;
+            background: linear-gradient(90deg, #1b5e20 0%, #236627 92%, #1b5e20 100%);
+            border-top-left-radius: 9999px;
+            border-bottom-left-radius: 9999px;
+        }
+
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container (Replaces alert()) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Custom Confirmation Modal (Replaces confirm()) -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-slate-200 fade-in">
+            <div class="flex items-center gap-3 text-amber-600 mb-3">
+                <div class="p-2 bg-amber-100 rounded-full">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-bold text-slate-900">Confirmació</h3>
+            </div>
+            <p id="confirm-message" class="text-slate-600 text-sm mb-6 leading-relaxed"></p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+                    Cancel·lar
+                </button>
+                <button id="confirm-ok-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition shadow-xs">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Preview Modal for Teacher -->
+    <div id="detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-slate-200 fade-in">
+            <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-pcmat-soft/60 rounded-t-2xl">
+                <div>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-pcmat-dark">Detall d'autoavaluació</span>
+                    <h3 id="detail-student-name" class="text-xl font-bold text-slate-900">Nom de l'alumne/a</h3>
+                    <p id="detail-student-meta" class="text-sm text-slate-600 mt-0.5"></p>
+                </div>
+                <button onclick="closeDetailModal()" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-white transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="detail-modal-body" class="p-5 overflow-y-auto space-y-3 text-sm">
+                <!-- Populated dynamically -->
+            </div>
+            <div class="p-4 border-t border-slate-200 flex justify-between items-center bg-slate-50 rounded-b-2xl">
+                <button id="detail-edit-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-pcmat-dark bg-pcmat-soft hover:bg-green-200/70 transition">
+                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    Carregar al formulari per editar
+                </button>
+                <button onclick="closeDetailModal()" class="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-pcmat-forest hover:bg-pcmat-dark transition">
+                    Tancar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-6xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 flex flex-col">
+
+        <!-- CORPORATE HEADER (Inspired by Images 2 & 3) -->
+        <header class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-4 mb-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                
+                <!-- Left Banner: Target Icon + ENS AVALUEM with organic brush edge -->
+                <div class="w-full md:w-auto flex-1 flex items-center">
+                    <div class="relative flex items-center bg-[#1b5e20] text-white pl-2 pr-8 sm:pr-12 py-2 rounded-l-full shadow-xs w-full md:w-auto md:min-w-[380px] lg:min-w-[460px]">
+                        <!-- Circular Target with Arrow SVG -->
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#74a578] flex items-center justify-center shrink-0 shadow-inner border-2 border-[#8fbc93]">
+                            <svg viewBox="0 0 64 64" class="w-9 h-9 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <!-- Concentric target circles -->
+                                <circle cx="30" cy="34" r="20" stroke-opacity="0.9"/>
+                                <circle cx="30" cy="34" r="13" stroke-opacity="0.9"/>
+                                <circle cx="30" cy="34" r="6" stroke-opacity="0.95"/>
+                                <!-- Arrow hitting center -->
+                                <line x1="30" y1="34" x2="52" y2="12" stroke-width="2.6"/>
+                                <!-- Arrow fletching (feathers) -->
+                                <path d="M44 12 L52 12 L52 20" stroke-width="2.2"/>
+                                <path d="M48 8 L56 8 L56 16" stroke-width="2.2"/>
+                            </svg>
+                        </div>
+                        
+                        <!-- Title Text -->
+                        <h1 class="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-wide uppercase ml-3 sm:ml-4 text-white select-none">
+                            ENS AVALUEM
+                        </h1>
+
+                        <!-- Organic Brush Stroke Right Edge SVG -->
+                        <svg class="hidden sm:block absolute -right-4 top-0 h-full w-6 text-[#1b5e20]" viewBox="0 0 24 80" preserveAspectRatio="none" fill="currentColor">
+                            <path d="M0,0 L16,0 C22,3 20,10 14,13 C23,16 24,25 16,29 C23,33 22,43 15,47 C24,51 22,61 14,65 C21,69 20,77 12,80 L0,80 Z"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Right Badge: PCMAT Logo with Flat Illustration of Teacher & Students -->
+                <div class="w-full md:w-auto flex justify-end">
+                    <div class="bg-[#357a38] text-white rounded-2xl px-4 sm:px-5 py-2 flex items-center justify-between sm:justify-center gap-3 sm:gap-4 shadow-xs w-full md:w-auto border border-[#2b662e]">
+                        <span class="font-sans text-2xl sm:text-3xl lg:text-4xl font-medium tracking-wider select-none">
+                            PCMAT
+                        </span>
+                        
+                        <!-- Custom Flat SVG Illustration inspired by PCMAT logo (Students & Teacher around table with robotics & geometry) -->
+                        <svg viewBox="0 0 150 92" class="w-28 sm:w-32 h-16 sm:h-18 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Teacher (Top Center-Right, orange hair, blue cardigan) -->
+                            <g id="teacher">
+                                <!-- Hair back -->
+                                <path d="M76 14 C76 6, 98 6, 102 16 C106 14, 111 19, 108 28 C106 34, 100 32, 98 28 Z" fill="#d97724"/>
+                                <!-- Body / Jacket -->
+                                <path d="M74 36 C74 31, 98 31, 102 42 L106 58 L72 58 Z" fill="#2c5e7a"/>
+                                <!-- Inner orange shirt -->
+                                <path d="M83 34 L91 34 L89 54 L82 54 Z" fill="#e67e22"/>
+                                <!-- Head -->
+                                <circle cx="86" cy="23" r="9.5" fill="#fde0b6"/>
+                                <!-- Hair bangs -->
+                                <path d="M76.5 21 C78 13, 93 13, 95 20 C91 17, 82 17, 76.5 21 Z" fill="#d97724"/>
+                                <!-- Eyes & Smile -->
+                                <circle cx="82.5" cy="23" r="1.2" fill="#1e293b"/>
+                                <circle cx="88" cy="23" r="1.2" fill="#1e293b"/>
+                                <path d="M83.5 27 Q85.5 29.5 87.5 27" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+                                <!-- Pointing Arm -->
+                                <path d="M76 41 L66 51 L71 54 L80 45 Z" fill="#2c5e7a"/>
+                                <circle cx="66" cy="52.5" r="2.5" fill="#fde0b6"/>
+                            </g>
+
+                            <!-- Student 1 (Left, dark skin, orange t-shirt) -->
+                            <g id="student-left">
+                                <!-- Hair bun & hair -->
+                                <circle cx="14" cy="36" r="5" fill="#1e293b"/>
+                                <circle cx="26" cy="38" r="10.5" fill="#1e293b"/>
+                                <!-- Body -->
+                                <path d="M12 52 C12 46, 36 46, 39 56 L42 74 L10 74 Z" fill="#f5821f"/>
+                                <!-- Legs -->
+                                <path d="M12 74 L38 74 L42 86 L15 86 Z" fill="#1e3a5f"/>
+                                <!-- Face -->
+                                <circle cx="28" cy="40" r="9" fill="#6d432a"/>
+                                <path d="M19 37 C21 30, 34 30, 36 37 C31 34, 24 34, 19 37 Z" fill="#1e293b"/>
+                                <!-- Eyes & Smile -->
+                                <circle cx="27" cy="40" r="1.1" fill="#111827"/>
+                                <circle cx="32.5" cy="40" r="1.1" fill="#111827"/>
+                                <path d="M28 43.5 Q30.5 45.5 32.5 43.5" stroke="#111827" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Student 2 (Center-Left, glasses, dark shirt) -->
+                            <g id="student-center">
+                                <!-- Hair -->
+                                <path d="M47 41 C47 30, 68 30, 69 42 L70 53 L46 53 Z" fill="#18222f"/>
+                                <!-- Body -->
+                                <path d="M46 52 C46 47, 68 47, 70 54 L71 66 L45 66 Z" fill="#1f2937"/>
+                                <!-- Face -->
+                                <circle cx="58" cy="42" r="8.5" fill="#7c4d30"/>
+                                <!-- Glasses -->
+                                <circle cx="55.5" cy="42" r="2.8" stroke="#111827" stroke-width="1.1" fill="none"/>
+                                <circle cx="62" cy="42" r="2.8" stroke="#111827" stroke-width="1.1" fill="none"/>
+                                <line x1="58.3" y1="42" x2="59.2" y2="42" stroke="#111827" stroke-width="1.1"/>
+                                <circle cx="55.5" cy="42" r="0.9" fill="#111827"/>
+                                <circle cx="62" cy="42" r="0.9" fill="#111827"/>
+                                <path d="M57 46 Q59 47.5 61 46" stroke="#111827" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Student 3 (Right, mint green shirt, dark hair) -->
+                            <g id="student-right">
+                                <!-- Hair -->
+                                <path d="M107 34 C107 24, 130 24, 131 36 C131 41, 128 44, 125 44 L108 40 Z" fill="#1e293b"/>
+                                <!-- Body -->
+                                <path d="M106 48 C108 43, 132 43, 135 53 L138 75 L105 75 Z" fill="#84c7b0"/>
+                                <!-- Yellow pants/chair -->
+                                <path d="M106 75 L136 75 L134 86 L104 86 Z" fill="#f5b027"/>
+                                <!-- Face -->
+                                <circle cx="116" cy="38" r="9" fill="#fde0b6"/>
+                                <path d="M107 35 C110 28, 125 28, 127 35 C121 32, 113 32, 107 35 Z" fill="#1e293b"/>
+                                <!-- Eyes & Smile -->
+                                <circle cx="112.5" cy="38" r="1.2" fill="#1e293b"/>
+                                <circle cx="118" cy="38" r="1.2" fill="#1e293b"/>
+                                <path d="M113.5 42 Q115.5 44.5 117.5 42" stroke="#1e293b" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- Desk / Table -->
+                            <g id="table">
+                                <!-- Table legs -->
+                                <rect x="16" y="70" width="3.5" height="17" fill="#d99b52"/>
+                                <rect x="131" y="70" width="3.5" height="17" fill="#d99b52"/>
+                                <!-- Table top -->
+                                <polygon points="12,64 138,64 135,71 15,71" fill="#f7ca79"/>
+                                <polygon points="15,61 135,61 138,64 12,64" fill="#fbe0a6"/>
+                            </g>
+
+                            <!-- Items on Table: Robot, Geometric Pyramid, Worksheet -->
+                            <g id="table-items">
+                                <!-- Worksheet -->
+                                <polygon points="24,62 46,60 50,63 27,64" fill="#ffffff"/>
+                                <line x1="30" y1="62" x2="43" y2="61.5" stroke="#f5821f" stroke-width="1.5"/>
+                                <!-- Educational Robot (White rover) -->
+                                <rect x="53" y="55" width="16" height="8" rx="3" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8"/>
+                                <circle cx="56" cy="63" r="2.5" fill="#1e293b"/>
+                                <circle cx="66" cy="63" r="2.5" fill="#1e293b"/>
+                                <circle cx="58" cy="58" r="1" fill="#3b82f6"/>
+                                <circle cx="63" cy="58" r="1" fill="#ef4444"/>
+                                <!-- Geometric Pyramid (Orange) -->
+                                <polygon points="81,53 75,63 87,63" fill="#f5821f"/>
+                                <polygon points="81,53 87,63 90,61" fill="#d97724"/>
+                                <!-- Tablet / Coding grid -->
+                                <polygon points="94,58 112,58 115,63 92,63" fill="#334155"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- NAVIGATION TABS -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div class="inline-flex bg-white p-1.5 rounded-xl shadow-xs border border-slate-200 w-full sm:w-auto">
+                <button id="tab-form-btn" onclick="switchTab('form')" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition bg-pcmat-forest text-white shadow-xs">
+                    <i data-lucide="clipboard-check" class="w-4 h-4"></i>
+                    <span>Formulari de l'alumne/a</span>
+                </button>
+                <button id="tab-records-btn" onclick="switchTab('records')" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                    <i data-lucide="table-2" class="w-4 h-4"></i>
+                    <span>Registres i Exportació (Docent)</span>
+                    <span id="records-badge" class="ml-1 px-2 py-0.5 text-xs font-bold rounded-full bg-pcmat-soft text-pcmat-dark">0</span>
+                </button>
+            </div>
+
+            <!-- Quick Export Shortcut on Header Bar -->
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="exportToExcel()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition" title="Descarregar fitxer Excel (.xlsx)">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    <span>Descarregar Excel</span>
+                </button>
+                <button onclick="copyForGoogleSheets()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 shadow-xs transition" title="Copiar dades per enganxar a Google Sheets">
+                    <i data-lucide="copy" class="w-4 h-4 text-pcmat-forest"></i>
+                    <span class="hidden md:inline">Copiar per a</span><span>Google Sheets</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 1: STUDENT SELF-ASSESSMENT FORM                                   -->
+        <!-- ===================================================================== -->
+        <main id="view-form" class="space-y-6 fade-in">
+            
+            <!-- Editing Banner (Shown only when editing an existing student record) -->
+            <div id="editing-banner" class="hidden bg-amber-50 border border-amber-300 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5 text-amber-900 text-sm">
+                    <i data-lucide="edit-2" class="w-5 h-5 text-amber-600 shrink-0"></i>
+                    <span>Estàs editant l'avaluació desada de <strong id="editing-student-label"></strong>.</span>
+                </div>
+                <button onclick="cancelEditing()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-amber-300 text-amber-900 hover:bg-amber-100 transition">
+                    Cancel·lar edició i crear nou
+                </button>
+            </div>
+
+            <!-- Student Info & Live Progress Card -->
+            <section class="bg-white rounded-2xl shadow-xs border border-slate-200 p-4 sm:p-6">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <!-- Student Full Name -->
+                    <div class="md:col-span-5">
+                        <label for="student-name" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Nom i cognoms de l'alumne/a <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="student-name" placeholder="Ex: Laia Puig i Rovira" 
+                                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-pcmat-forest focus:border-pcmat-forest transition">
+                        </div>
+                    </div>
+
+                    <!-- Course / Group -->
+                    <div class="md:col-span-4">
+                        <label for="student-group" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Curs / Grup
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="student-group" list="group-suggestions" placeholder="Ex: 5è A / 6è B / 1r ESO" 
+                                class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-pcmat-forest focus:border-pcmat-forest transition">
+                            <datalist id="group-suggestions">
+                                <option value="5è Primària - Grup A">
+                                <option value="5è Primària - Grup B">
+                                <option value="6è Primària - Grup A">
+                                <option value="6è Primària - Grup B">
+                                <option value="1r ESO - Grup A">
+                                <option value="1r ESO - Grup B">
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <!-- Date -->
+                    <div class="md:col-span-3">
+                        <label for="assessment-date" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                            Data
+                        </label>
+                        <div class="relative">
+                            <input type="date" id="assessment-date" 
+                                class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-pcmat-forest focus:border-pcmat-forest transition">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Achievement Progress Bar -->
+                <div class="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-slate-700">Progrés d'assoliment actual:</span>
+                        <span id="progress-counter" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-pcmat-soft text-pcmat-dark">
+                            0 / 10 assolits (0%)
+                        </span>
+                    </div>
+                    <div class="w-full sm:w-64 md:w-80 bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div id="progress-bar" class="bg-pcmat-forest h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interactive Questionnaire Table (Exact 10 items from Image 1) -->
+            <section class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                <!-- Quick Actions Bar inside Questionnaire -->
+                <div class="bg-pcmat-mint px-4 sm:px-6 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs sm:text-sm text-slate-600">
+                        Marca la casella d'<strong>Assoliment</strong> si has assolit cada criteri i escriu un <strong>comentari o exemple</strong>.
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="toggleAllCriteria(true)" class="text-xs font-semibold text-pcmat-dark hover:underline px-2 py-1 rounded hover:bg-pcmat-soft transition">
+                            Marcar tots
+                        </button>
+                        <span class="text-slate-300">|</span>
+                        <button type="button" onclick="toggleAllCriteria(false)" class="text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline px-2 py-1 rounded hover:bg-slate-200/60 transition">
+                            Desmarcar tots
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Responsive Table Wrapper -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-slate-300 bg-white text-slate-700 text-sm font-bold">
+                                <th class="py-3.5 px-4 sm:px-6 w-full md:w-[44%]">Criteri d'avaluació</th>
+                                <th class="py-3.5 px-3 sm:px-4 text-center w-28 sm:w-32">Assoliment</th>
+                                <th class="py-3.5 px-4 sm:px-6 w-full md:w-[44%]">Comentari o exemples</th>
+                            </tr>
+                        </thead>
+                        <tbody id="criteria-tbody" class="divide-y divide-slate-200 text-sm sm:text-[15px]">
+                            <!-- 10 Rows dynamically generated from CRITERIA array -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Bottom Form Action Bar -->
+                <div class="bg-slate-50 px-4 sm:px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button type="button" onclick="resetForm()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 transition">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span>Netejar formulari</span>
+                    </button>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <button type="button" onclick="saveStudentAssessment()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-pcmat-forest hover:bg-pcmat-dark shadow-sm hover:shadow transition cursor-pointer">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span id="save-btn-text">Desar avaluació de l'alumne/a</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ===================================================================== -->
+        <!-- TAB 2: TEACHER RECORDS & EXCEL / GOOGLE SHEETS EXPORT                 -->
+        <!-- ===================================================================== -->
+        <section id="view-records" class="hidden space-y-6 fade-in">
+            
+            <!-- Export Control Panel -->
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 sm:p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="download-cloud" class="w-5 h-5 text-pcmat-forest"></i>
+                            <span>Exportació de resultats del grup</span>
+                        </h2>
+                        <p class="text-sm text-slate-600 mt-1">
+                            Descarrega tots els qüestionaris desats en format full de càlcul o copia'ls directament per enganxar a Google Sheets.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Excel (.xlsx) Button -->
+                        <button onclick="exportToExcel()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-700 hover:bg-emerald-800 shadow-xs transition">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                            <span>Descarregar Excel (.xlsx)</span>
+                        </button>
+
+                        <!-- CSV for Google Sheets Button -->
+                        <button onclick="exportToCSV()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-pcmat-dark bg-pcmat-soft hover:bg-green-200/80 border border-green-300 transition">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                            <span>Descarregar CSV (Google Sheets)</span>
+                        </button>
+
+                        <!-- Copy TSV to Clipboard for Google Sheets -->
+                        <button onclick="copyForGoogleSheets()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition">
+                            <i data-lucide="clipboard-copy" class="w-4 h-4 text-pcmat-forest"></i>
+                            <span>Copiar taula per a Google Sheets</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saved Student Records Table -->
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/70">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-slate-800 text-base">Alumnes avaluats</h3>
+                        <span id="records-count-pill" class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-pcmat-soft text-pcmat-dark">0 registres</span>
+                    </div>
+                    <button id="clear-all-btn" onclick="confirmClearAllRecords()" class="hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 transition">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span>Esborrar tots els registres</span>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="records-empty-state" class="p-10 text-center">
+                    <div class="w-14 h-14 rounded-full bg-pcmat-soft text-pcmat-forest flex items-center justify-center mx-auto mb-3">
+                        <i data-lucide="folder-open" class="w-7 h-7"></i>
+                    </div>
+                    <h4 class="text-base font-bold text-slate-800">Encara no hi ha cap avaluació desada</h4>
+                    <p class="text-sm text-slate-500 max-w-md mx-auto mt-1 mb-4">
+                        Omple el qüestionari a la pestanya "Formulari de l'alumne/a" i fes clic a "Desar avaluació" per anar registrant els resultats de la classe.
+                    </p>
+                    <button onclick="switchTab('form')" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-pcmat-forest hover:bg-pcmat-dark transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Anar al formulari</span>
+                    </button>
+                </div>
+
+                <!-- Records List Table -->
+                <div id="records-table-wrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-600">
+                                <th class="py-3 px-5">Alumne/a</th>
+                                <th class="py-3 px-4">Curs / Grup</th>
+                                <th class="py-3 px-4">Data</th>
+                                <th class="py-3 px-4">Assoliment</th>
+                                <th class="py-3 px-4 text-center">Comentaris</th>
+                                <th class="py-3 px-5 text-right">Accions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-tbody" class="divide-y divide-slate-200 text-sm">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-8 pt-4 border-t border-slate-200 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>PCMAT · Pensament Computacional i Matemàtiques</span>
+            <span>Les dades es desen automàticament al navegador local d'aquest dispositiu.</span>
+        </footer>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. DATA DEFINITION (Exact 10 criteria from Image 1)
+        // =========================================================================
+        const CRITERIA = [
+            {
+                id: 1,
+                html: 'Sé <strong>descobrir i explicar la regla</strong> que segueix una successió numèrica.',
+                plain: 'Sé descobrir i explicar la regla que segueix una successió numèrica.',
+                shortTitle: '1. Regla successió numèrica'
+            },
+            {
+                id: 2,
+                html: 'Sé construir i continuar la <strong>successió de Fibonacci</strong>.',
+                plain: 'Sé construir i continuar la successió de Fibonacci.',
+                shortTitle: '2. Construir successió Fibonacci'
+            },
+            {
+                id: 3,
+                html: 'Sé identificar <strong>regularitats entre els nombres de Fibonacci</strong> i utilitzar-les per fer prediccions.',
+                plain: 'Sé identificar regularitats entre els nombres de Fibonacci i utilitzar-les per fer prediccions.',
+                shortTitle: '3. Regularitats nombres Fibonacci'
+            },
+            {
+                id: 4,
+                html: 'Sé relacionar la successió de Fibonacci amb <strong>formes geomètriques</strong> i explicar com es construeix la seva espiral.',
+                plain: 'Sé relacionar la successió de Fibonacci amb formes geomètriques i explicar com es construeix la seva espiral.',
+                shortTitle: '4. Fibonacci, formes geomètriques i espiral'
+            },
+            {
+                id: 5,
+                html: 'Sé identificar i descriure <strong>patrons matemàtics en formes de la natura</strong>.',
+                plain: 'Sé identificar i descriure patrons matemàtics en formes de la natura.',
+                shortTitle: '5. Patrons matemàtics a la natura'
+            },
+            {
+                id: 6,
+                html: 'Sé mesurar i comparar <strong>angles de gir</strong> i identificar-hi regularitats.',
+                plain: 'Sé mesurar i comparar angles de gir i identificar-hi regularitats.',
+                shortTitle: '6. Mesurar i comparar angles de gir'
+            },
+            {
+                id: 7,
+                html: 'Sé <strong>transformar un recorregut</strong> en una seqüència d’<strong>instruccions</strong> i ajustar el programa a partir de les proves.',
+                plain: 'Sé transformar un recorregut en una seqüència d’instruccions i ajustar el programa a partir de les proves.',
+                shortTitle: '7. Recorregut en seqüència d’instruccions'
+            },
+            {
+                id: 8,
+                html: 'Sé fer una <strong>predicció, posar-la a prova i modificar-la</strong> a partir dels resultats.',
+                plain: 'Sé fer una predicció, posar-la a prova i modificar-la a partir dels resultats.',
+                shortTitle: '8. Predicció, prova i modificació'
+            },
+            {
+                id: 9,
+                html: 'He participat activament en el <strong>treball en equip</strong>.',
+                plain: 'He participat activament en el treball en equip.',
+                shortTitle: '9. Participació treball en equip'
+            },
+            {
+                id: 10,
+                html: 'He contribuït a <strong>planificar i prendre decisions</strong> dins el grup.',
+                plain: 'He contribuït a planificar i prendre decisions dins el grup.',
+                shortTitle: '10. Planificar i prendre decisions'
+            }
+        ];
+
+        const STORAGE_KEY = 'pcmat_ens_avaluem_records_v1';
+        let savedRecords = [];
+        let editingRecordId = null;
+
+        // =========================================================================
+        // 2. INITIALIZATION
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDate();
+            renderCriteriaRows();
+            loadRecordsFromStorage();
+            updateProgressBar();
+            lucide.createIcons();
+        });
+
+        function setDefaultDate() {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('assessment-date').value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        function renderCriteriaRows() {
+            const tbody = document.getElementById('criteria-tbody');
+            tbody.innerHTML = CRITERIA.map((item, idx) => `
+                <tr class="hover:bg-pcmat-mint/60 transition-colors group" id="row-criterion-${item.id}">
+                    <td class="py-3.5 px-4 sm:px-6 text-slate-700 leading-snug cursor-pointer select-none" onclick="toggleRowCheckbox(${item.id})">
+                        <div class="flex items-start gap-2.5">
+                            <span class="text-xs font-bold text-slate-400 mt-0.5 select-none w-5 shrink-0">${item.id}.</span>
+                            <span>${item.html}</span>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-3 sm:px-4 text-center align-middle">
+                        <label class="inline-flex items-center justify-center p-2 rounded-lg cursor-pointer">
+                            <input type="checkbox" id="chk-${item.id}" data-criterion-id="${item.id}" 
+                                onchange="onCriterionChange(${item.id})"
+                                class="custom-checkbox">
+                            <span class="sr-only">Assoliment criteri ${item.id}</span>
+                        </label>
+                    </td>
+                    <td class="py-2.5 px-4 sm:px-6 align-middle">
+                        <textarea id="comment-${item.id}" rows="1" 
+                            placeholder="Escriu un comentari o exemple..."
+                            oninput="autoResizeTextarea(this)"
+                            class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pcmat-forest focus:border-pcmat-forest transition resize-none overflow-hidden"></textarea>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        }
+
+        function toggleRowCheckbox(id) {
+            const chk = document.getElementById(`chk-${id}`);
+            if (chk) {
+                chk.checked = !chk.checked;
+                onCriterionChange(id);
+            }
+        }
+
+        function onCriterionChange(id) {
+            const chk = document.getElementById(`chk-${id}`);
+            const row = document.getElementById(`row-criterion-${id}`);
+            if (chk && row) {
+                if (chk.checked) {
+                    row.classList.add('bg-pcmat-soft/40');
+                } else {
+                    row.classList.remove('bg-pcmat-soft/40');
+                }
+            }
+            updateProgressBar();
+        }
+
+        function toggleAllCriteria(state) {
+            CRITERIA.forEach(item => {
+                const chk = document.getElementById(`chk-${item.id}`);
+                if (chk) {
+                    chk.checked = state;
+                    onCriterionChange(item.id);
+                }
+            });
+        }
+
+        function updateProgressBar() {
+            let achievedCount = 0;
+            CRITERIA.forEach(item => {
+                const chk = document.getElementById(`chk-${item.id}`);
+                if (chk && chk.checked) achievedCount++;
+            });
+            const total = CRITERIA.length;
+            const pct = Math.round((achievedCount / total) * 100);
+
+            document.getElementById('progress-counter').textContent = `${achievedCount} / ${total} assolits (${pct}%)`;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+        }
+
+        // =========================================================================
+        // 3. FORM DATA COLLECTION & PERSISTENCE (localStorage)
+        // =========================================================================
+        function getCurrentFormData() {
+            const name = document.getElementById('student-name').value.trim();
+            const group = document.getElementById('student-group').value.trim();
+            const date = document.getElementById('assessment-date').value;
+
+            const responses = CRITERIA.map(item => {
+                const achieved = document.getElementById(`chk-${item.id}`).checked;
+                const comment = document.getElementById(`comment-${item.id}`).value.trim();
+                return {
+                    id: item.id,
+                    achieved,
+                    comment
+                };
+            });
+
+            const totalAchieved = responses.filter(r => r.achieved).length;
+            const percentage = Math.round((totalAchieved / CRITERIA.length) * 100);
+
+            return {
+                id: editingRecordId || ('rec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)),
+                name,
+                group,
+                date,
+                totalAchieved,
+                totalItems: CRITERIA.length,
+                percentage,
+                responses,
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        function hasUnsavedFormContent() {
+            const data = getCurrentFormData();
+            const hasAnyCheck = data.responses.some(r => r.achieved);
+            const hasAnyComment = data.responses.some(r => r.comment.length > 0);
+            return data.name.length > 0 || hasAnyCheck || hasAnyComment;
+        }
+
+        function saveStudentAssessment() {
+            const formData = getCurrentFormData();
+
+            if (!formData.name) {
+                showToast('Introdueix el nom i cognoms de l\'alumne/a abans de desar.', 'error');
+                document.getElementById('student-name').focus();
+                return;
+            }
+
+            if (editingRecordId) {
+                const idx = savedRecords.findIndex(r => r.id === editingRecordId);
+                if (idx !== -1) {
+                    savedRecords[idx] = formData;
+                    showToast(`S'ha actualitzat l'avaluació de ${formData.name}.`, 'success');
+                }
+                editingRecordId = null;
+                updateEditingUI();
+            } else {
+                savedRecords.push(formData);
+                showToast(`Avaluació de ${formData.name} desada correctament (${formData.totalAchieved}/10).`, 'success');
+            }
+
+            persistRecords();
+            renderRecordsTable();
+            resetForm(false);
+        }
+
+        function resetForm(showNotification = true) {
+            document.getElementById('student-name').value = '';
+            document.getElementById('student-group').value = '';
+            setDefaultDate();
+            editingRecordId = null;
+            updateEditingUI();
+
+            CRITERIA.forEach(item => {
+                const chk = document.getElementById(`chk-${item.id}`);
+                const comment = document.getElementById(`comment-${item.id}`);
+                const row = document.getElementById(`row-criterion-${item.id}`);
+                if (chk) chk.checked = false;
+                if (comment) {
+                    comment.value = '';
+                    comment.style.height = 'auto';
+                }
+                if (row) row.classList.remove('bg-pcmat-soft/40');
+            });
+
+            updateProgressBar();
+            if (showNotification) {
+                showToast('Formulari netejat i llest per a un nou alumne/a.', 'info');
+            }
+        }
+
+        function loadRecordsFromStorage() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    savedRecords = JSON.parse(raw);
+                }
+            } catch (e) {
+                console.error('Error llegint localStorage:', e);
+                savedRecords = [];
+            }
+            renderRecordsTable();
+        }
+
+        function persistRecords() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRecords));
+            } catch (e) {
+                console.error('Error desant a localStorage:', e);
+                showToast('No s\'han pogut desar les dades al navegador.', 'error');
+            }
+        }
+
+        // =========================================================================
+        // 4. TEACHER RECORDS VIEW & ACTIONS
+        // =========================================================================
+        function renderRecordsTable() {
+            const count = savedRecords.length;
+            document.getElementById('records-badge').textContent = count;
+            document.getElementById('records-count-pill').textContent = `${count} ${count === 1 ? 'registre' : 'registres'}`;
+
+            const emptyState = document.getElementById('records-empty-state');
+            const tableWrapper = document.getElementById('records-table-wrapper');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            const tbody = document.getElementById('records-tbody');
+
+            if (count === 0) {
+                emptyState.classList.remove('hidden');
+                tableWrapper.classList.add('hidden');
+                clearAllBtn.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tableWrapper.classList.remove('hidden');
+            clearAllBtn.classList.remove('hidden');
+
+            tbody.innerHTML = savedRecords.map(rec => {
+                const commentsCount = rec.responses.filter(r => r.comment && r.comment.trim().length > 0).length;
+                const badgeColor = rec.percentage >= 80
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    : rec.percentage >= 50
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-slate-100 text-slate-700 border-slate-200';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-3.5 px-5 font-semibold text-slate-900">${escapeHtml(rec.name)}</td>
+                        <td class="py-3.5 px-4 text-slate-600">${rec.group ? escapeHtml(rec.group) : '<span class="text-slate-400 italic">—</span>'}</td>
+                        <td class="py-3.5 px-4 text-slate-600 whitespace-nowrap">${formatDisplayDate(rec.date)}</td>
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${badgeColor}">
+                                ${rec.totalAchieved}/10 (${rec.percentage}%)
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center text-slate-600">
+                            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded bg-slate-100">
+                                <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-500"></i>
+                                ${commentsCount} / 10
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-5 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center justify-end gap-1.5">
+                                <button onclick="openDetailModal('${rec.id}')" class="p-2 rounded-lg text-slate-600 hover:text-pcmat-dark hover:bg-pcmat-soft transition" title="Veure detall">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="editRecord('${rec.id}')" class="p-2 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition" title="Editar registre">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="confirmDeleteRecord('${rec.id}')" class="p-2 rounded-lg text-slate-600 hover:text-red-600 hover:bg-red-50 transition" title="Esborrar registre">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function editRecord(id) {
+            const rec = savedRecords.find(r => r.id === id);
+            if (!rec) return;
+
+            closeDetailModal();
+            editingRecordId = rec.id;
+
+            document.getElementById('student-name').value = rec.name;
+            document.getElementById('student-group').value = rec.group || '';
+            document.getElementById('assessment-date').value = rec.date || '';
+
+            CRITERIA.forEach(item => {
+                const resp = rec.responses.find(r => r.id === item.id);
+                const chk = document.getElementById(`chk-${item.id}`);
+                const comment = document.getElementById(`comment-${item.id}`);
+                const row = document.getElementById(`row-criterion-${item.id}`);
+
+                if (chk) chk.checked = resp ? !!resp.achieved : false;
+                if (comment) {
+                    comment.value = resp ? (resp.comment || '') : '';
+                    autoResizeTextarea(comment);
+                }
+                if (row) {
+                    if (chk && chk.checked) row.classList.add('bg-pcmat-soft/40');
+                    else row.classList.remove('bg-pcmat-soft/40');
+                }
+            });
+
+            updateProgressBar();
+            updateEditingUI();
+            switchTab('form');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEditing() {
+            resetForm(false);
+            showToast('Edició cancel·lada.', 'info');
+        }
+
+        function updateEditingUI() {
+            const banner = document.getElementById('editing-banner');
+            const label = document.getElementById('editing-student-label');
+            const saveBtnText = document.getElementById('save-btn-text');
+
+            if (editingRecordId) {
+                const rec = savedRecords.find(r => r.id === editingRecordId);
+                label.textContent = rec ? rec.name : '';
+                banner.classList.remove('hidden');
+                saveBtnText.textContent = 'Actualitzar avaluació';
+            } else {
+                banner.classList.add('hidden');
+                saveBtnText.textContent = 'Desar avaluació de l\'alumne/a';
+            }
+        }
+
+        function openDetailModal(id) {
+            const rec = savedRecords.find(r => r.id === id);
+            if (!rec) return;
+
+            document.getElementById('detail-student-name').textContent = rec.name;
+            document.getElementById('detail-student-meta').textContent = 
+                `${rec.group ? rec.group + ' · ' : ''}Data: ${formatDisplayDate(rec.date)} · Assoliment: ${rec.totalAchieved}/10 (${rec.percentage}%)`;
+
+            const body = document.getElementById('detail-modal-body');
+            body.innerHTML = CRITERIA.map(item => {
+                const resp = rec.responses.find(r => r.id === item.id) || { achieved: false, comment: '' };
+                return `
+                    <div class="p-3 rounded-xl border ${resp.achieved ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-slate-50/50'}">
+                        <div class="flex items-start justify-between gap-3">
+                            <p class="text-slate-800"><span class="font-bold text-slate-500 mr-1">${item.id}.</span> ${item.html}</p>
+                            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${resp.achieved ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                                ${resp.achieved ? 'Assolit' : 'No assolit'}
+                            </span>
+                        </div>
+                        ${resp.comment ? `
+                            <div class="mt-2 pl-4 border-l-2 border-pcmat-forest text-xs text-slate-700 bg-white/80 p-2 rounded-r-lg">
+                                <span class="font-semibold text-pcmat-dark">Comentari:</span> ${escapeHtml(resp.comment)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            const editBtn = document.getElementById('detail-edit-btn');
+            editBtn.onclick = () => editRecord(rec.id);
+
+            const modal = document.getElementById('detail-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detail-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmDeleteRecord(id) {
+            const rec = savedRecords.find(r => r.id === id);
+            if (!rec) return;
+
+            openConfirmModal(
+                'Esborrar registre',
+                `Estàs segur/a que vols esborrar l'autoavaluació de <strong>${escapeHtml(rec.name)}</strong>? Aquesta acció no es pot desfer.`,
+                () => {
+                    savedRecords = savedRecords.filter(r => r.id !== id);
+                    if (editingRecordId === id) {
+                        resetForm(false);
+                    }
+                    persistRecords();
+                    renderRecordsTable();
+                    showToast(`Registre de ${rec.name} esborrat.`, 'info');
+                }
+            );
+        }
+
+        function confirmClearAllRecords() {
+            if (savedRecords.length === 0) return;
+
+            openConfirmModal(
+                'Esborrar tots els registres',
+                `Estàs segur/a que vols esborrar <strong>tots els ${savedRecords.length} registres</strong> desats? Assegura't d'haver descarregat l'Excel abans.`,
+                () => {
+                    savedRecords = [];
+                    resetForm(false);
+                    persistRecords();
+                    renderRecordsTable();
+                    showToast('S\'han esborrat tots els registres.', 'info');
+                }
+            );
+        }
+
+        // =========================================================================
+        // 5. EXPORT TO EXCEL (.xlsx), CSV & GOOGLE SHEETS CLIPBOARD
+        // =========================================================================
+        function getRecordsForExport() {
+            const exportList = [...savedRecords];
+            const current = getCurrentFormData();
+
+            // If user filled current form (with a name or selections) and hasn't saved it yet, include it automatically
+            if (!editingRecordId && hasUnsavedFormContent()) {
+                const draftRecord = {
+                    ...current,
+                    name: current.name || 'Alumne/a (Formulari actual sense desar)'
+                };
+                exportList.push(draftRecord);
+            }
+            return exportList;
+        }
+
+        function buildExportMatrix(records) {
+            // Header row
+            const headers = [
+                'Nom i cognoms',
+                'Curs / Grup',
+                'Data',
+                'Total Assoliments',
+                'Percentatge (%)'
+            ];
+
+            CRITERIA.forEach(c => {
+                headers.push(`${c.shortTitle} - Estat`);
+                headers.push(`${c.shortTitle} - Comentari o exemples`);
+            });
+
+            const rows = [headers];
+
+            records.forEach(rec => {
+                const row = [
+                    rec.name,
+                    rec.group || '',
+                    rec.date || '',
+                    `${rec.totalAchieved}/${rec.totalItems}`,
+                    rec.percentage
+                ];
+
+                CRITERIA.forEach(c => {
+                    const resp = rec.responses.find(r => r.id === c.id) || { achieved: false, comment: '' };
+                    row.push(resp.achieved ? 'Assolit' : 'No assolit');
+                    row.push(resp.comment || '');
+                });
+
+                rows.push(row);
+            });
+
+            return rows;
+        }
+
+        function exportToExcel() {
+            const records = getRecordsForExport();
+            if (records.length === 0) {
+                showToast('No hi ha cap dada per exportar. Omple o desa almenys un qüestionari.', 'error');
+                return;
+            }
+
+            try {
+                if (typeof XLSX === 'undefined') {
+                    showToast('La llibreria Excel encara s\'està carregant. Torna-ho a provar en un segon.', 'error');
+                    return;
+                }
+
+                const matrix = buildExportMatrix(records);
+                const ws = XLSX.utils.aoa_to_sheet(matrix);
+
+                // Set readable column widths
+                const colWidths = [
+                    { wch: 28 }, // Nom
+                    { wch: 18 }, // Curs
+                    { wch: 13 }, // Data
+                    { wch: 18 }, // Total
+                    { wch: 16 }, // %
+                ];
+                CRITERIA.forEach(() => {
+                    colWidths.push({ wch: 14 }); // Estat
+                    colWidths.push({ wch: 36 }); // Comentari
+                });
+                ws['!cols'] = colWidths;
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Ens Avaluem PCMAT');
+
+                // Second sheet: Criteria reference guide
+                const criteriaRef = [
+                    ['Núm.', 'Criteri d\'avaluació complet'],
+                    ...CRITERIA.map(c => [c.id, c.plain])
+                ];
+                const wsRef = XLSX.utils.aoa_to_sheet(criteriaRef);
+                wsRef['!cols'] = [{ wch: 8 }, { wch: 90 }];
+                XLSX.utils.book_append_sheet(wb, wsRef, 'Criteris');
+
+                XLSX.writeFile(wb, 'Resultats_PCMAT_Ens_Avaluem.xlsx');
+                showToast(`Fitxer Excel descarregat amb ${records.length} ${records.length === 1 ? 'alumne' : 'alumnes'}.`, 'success');
+            } catch (err) {
+                console.error('Error exportant Excel:', err);
+                showToast('S\'ha produït un error generant l\'Excel. Prova amb CSV.', 'error');
+            }
+        }
+
+        function exportToCSV() {
+            const records = getRecordsForExport();
+            if (records.length === 0) {
+                showToast('No hi ha cap dada per exportar. Omple o desa almenys un qüestionari.', 'error');
+                return;
+            }
+
+            const matrix = buildExportMatrix(records);
+            const csvContent = matrix.map(row =>
+                row.map(cell => {
+                    const str = String(cell ?? '').replace(/"/g, '""');
+                    return `"${str}"`;
+                }).join(',')
+            ).join('\r\n');
+
+            // UTF-8 BOM (\uFEFF) ensures accents display properly in Excel & Google Sheets
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'Resultats_PCMAT_Ens_Avaluem.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast(`Fitxer CSV descarregat (${records.length} ${records.length === 1 ? 'registre' : 'registres'}).`, 'success');
+        }
+
+        function copyForGoogleSheets() {
+            const records = getRecordsForExport();
+            if (records.length === 0) {
+                showToast('No hi ha cap dada per copiar. Omple o desa almenys un qüestionari.', 'error');
+                return;
+            }
+
+            const matrix = buildExportMatrix(records);
+            // Tab-Separated Values (TSV) pastes cleanly into Google Sheets cells
+            const tsvContent = matrix.map(row =>
+                row.map(cell => String(cell ?? '').replace(/\t/g, ' ').replace(/\r?\n/g, ' ')).join('\t')
+            ).join('\n');
+
+            // Use textarea + execCommand('copy') for reliable iFrame clipboard compatibility
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = tsvContent;
+            tempTextarea.style.position = 'fixed';
+            tempTextarea.style.left = '-9999px';
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Taula copiada! Obre Google Sheets i prem Ctrl+V (o Cmd+V) per enganxar.', 'success');
+                } else {
+                    showToast('No s\'ha pogut copiar automàticament. Prova descarregant el CSV.', 'error');
+                }
+            } catch (err) {
+                showToast('Error copiant al porta-retalls.', 'error');
+            } finally {
+                document.body.removeChild(tempTextarea);
+            }
+        }
+
+        // =========================================================================
+        // 6. UI NAVIGATION & CUSTOM MODALS / TOASTS
+        // =========================================================================
+        function switchTab(tabName) {
+            const formView = document.getElementById('view-form');
+            const recordsView = document.getElementById('view-records');
+            const formBtn = document.getElementById('tab-form-btn');
+            const recordsBtn = document.getElementById('tab-records-btn');
+
+            if (tabName === 'form') {
+                formView.classList.remove('hidden');
+                recordsView.classList.add('hidden');
+
+                formBtn.className = 'flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition bg-pcmat-forest text-white shadow-xs';
+                recordsBtn.className = 'flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+            } else {
+                formView.classList.add('hidden');
+                recordsView.classList.remove('hidden');
+
+                recordsBtn.className = 'flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition bg-pcmat-forest text-white shadow-xs';
+                formBtn.className = 'flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+                renderRecordsTable();
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            const styles = {
+                success: 'bg-emerald-900 text-white border-emerald-700',
+                error: 'bg-red-800 text-white border-red-600',
+                info: 'bg-slate-800 text-white border-slate-700'
+            };
+
+            const icons = {
+                success: 'check-circle-2',
+                error: 'alert-circle',
+                info: 'info'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium fade-in ${styles[type] || styles.info}`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type] || 'info'}" class="w-5 h-5 shrink-0"></i>
+                <span class="leading-snug">${message}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                toast.style.transition = 'all 0.2s ease';
+                setTimeout(() => toast.remove(), 220);
+            }, 3800);
+        }
+
+        let confirmCallback = null;
+        function openConfirmModal(title, messageHtml, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').innerHTML = messageHtml;
+            confirmCallback = onConfirm;
+
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirmModal);
+        document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+            if (typeof confirmCallback === 'function') {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        });
+
+        // Helpers
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDisplayDate(isoDate) {
+            if (!isoDate) return '—';
+            const parts = isoDate.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return isoDate;
+        }
+    </script>
+</body>
+</html>
